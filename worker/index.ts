@@ -64,6 +64,18 @@ app.post('/api/names', async (c) => {
       createdAt: new Date(),
       createdBy: createdBy || 'anonymous', // save creator
     });
+
+    // Auto-vote for the creator
+    if (createdBy) {
+      await db.insert(schema.votes).values({
+        id: crypto.randomUUID(),
+        userName: createdBy,
+        nameId: id,
+        vote: 'like', // Assume submitting is liking
+        createdAt: new Date(),
+      });
+    }
+
     return c.json({ id, name, status: 'created' }, 201);
   } catch (e) {
      return c.json({ error: 'Failed to create name' }, 500);
@@ -146,16 +158,9 @@ app.post('/api/vote', async (c) => {
 
       if (otherLikes.length > 0) {
         isMatch = true;
-      } else {
-        // 2. Check if the name was created by another user (and they haven't voted dislike ideally, but let's assume creation = like)
-        // We do not check for explicit dislike from creator here to keep it simple, 
-        // assuming creators generally like their suggestions unless they change their mind (which they can do by voting dislike).
-        // If creator voted dislike, it would be caught if we did a check, but let's just check creation for now as per plan.
-        const nameRecord = await db.select().from(schema.names).where(eq(schema.names.id, nameId)).get();
-        if (nameRecord && nameRecord.createdBy && nameRecord.createdBy !== userName) {
-           isMatch = true;
-        }
       }
+      // Simplified: We now auto-vote on creation, so we don't need to check createdBy explicitly here.
+      // If the creator submitted it, they have a vote record. If they liked it, it's a match.
     }
 
     return c.json({ status: 'voted', match: isMatch }, 201);
@@ -269,9 +274,6 @@ app.get('/api/matches', async (c) => {
     const matches = likedNamesDetails.filter(n => {
       // Is matched by vote?
       if (agreedNameIds.has(n.id)) return true;
-      
-      // Is matched by creator?
-      if (n.createdBy && n.createdBy !== userName) return true;
       
       return false;
     });
