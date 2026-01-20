@@ -4,7 +4,7 @@ export const names = sqliteTable('names', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   gender: text('gender').notNull(), // 'boy', 'girl', 'neutral'
-  origin: text('origin'),
+
   phoneticHash: text('phonetic_hash'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   createdBy: text('created_by'), // optional, if we track who added it

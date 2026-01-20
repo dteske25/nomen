@@ -31,12 +31,12 @@ export function levenshtein(a: string, b: string): number {
 export type CandidateName = {
   name: string;
   gender: string;
-  origin: string;
+
 };
 
 export async function fetchNames(count: number): Promise<CandidateName[]> {
   const response = await fetch(
-    `https://randomuser.me/api/?results=${count}&nat=us,gb,fr,de,es&inc=name,gender,nat`
+    `https://randomuser.me/api/?results=${count}&nat=us,gb,au,ca,nz,ie&inc=name,gender,nat`
   );
   
   if (!response.ok) {
@@ -48,6 +48,5 @@ export async function fetchNames(count: number): Promise<CandidateName[]> {
   return data.results.map((r: any) => ({
     name: r.name.first,
     gender: r.gender, // 'male' or 'female'
-    origin: r.nat,
   }));
 }

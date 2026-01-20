@@ -26,7 +26,7 @@ app.get('/api/names', async (c) => {
 app.post('/api/names', async (c) => {
   const db = drizzle(c.env.DB, { schema });
   const body = await c.req.json();
-  const { name, gender, origin } = body;
+  const { name, gender } = body;
   
   if (!name || !gender) {
     return c.json({ error: 'Name and gender are required' }, 400);
@@ -38,7 +38,6 @@ app.post('/api/names', async (c) => {
       id,
       name,
       gender,
-      origin,
       createdAt: new Date(),
     });
     return c.json({ id, name, status: 'created' }, 201);
@@ -132,7 +131,6 @@ app.post('/api/seed', async (c) => {
         id,
         name: candidate.name,
         gender: candidate.gender,
-        origin: candidate.origin,
         createdAt: new Date(),
       });
       

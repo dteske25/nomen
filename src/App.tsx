@@ -1,12 +1,44 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Home as HomeIcon, PlusCircle, Heart } from 'lucide-react';
 import HomePage from './pages/Home';
 import Submit from './pages/Submit';
 import Rate from './pages/Rate';
+import NamePrompt from './components/NamePrompt';
 
 function Layout() {
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  
+  // Check if name exists on mount
+  useEffect(() => {
+    const savedName = localStorage.getItem('userName');
+    if (!savedName) {
+      // Add one-time listeners for interaction
+      const handleInteraction = () => {
+        const currentName = localStorage.getItem('userName');
+        if (!currentName) {
+            setShowNamePrompt(true);
+        }
+      };
+
+      window.addEventListener('click', handleInteraction);
+      window.addEventListener('keydown', handleInteraction);
+
+      return () => {
+        window.removeEventListener('click', handleInteraction);
+        window.removeEventListener('keydown', handleInteraction);
+      };
+    }
+  }, []);
+
+  const handleSaveName = (name: string) => {
+    localStorage.setItem('userName', name);
+    setShowNamePrompt(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      <NamePrompt isOpen={showNamePrompt} onSave={handleSaveName} />
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-4 py-3 flex items-center justify-between shadow-sm">
         <Link to="/" className="text-xl font-bold bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
           Nomen

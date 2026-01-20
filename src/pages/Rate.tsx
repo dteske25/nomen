@@ -7,7 +7,7 @@ type NameRecord = {
   id: string;
   name: string;
   gender: string;
-  origin?: string;
+
 };
 
 export default function Rate() {
@@ -73,6 +73,17 @@ export default function Rate() {
     <div className="text-center p-10 space-y-4">
       <h3 className="text-xl font-bold">All caught up!</h3>
       <p>Check back later for more names or add some new ones.</p>
+      <button 
+        onClick={async () => {
+          setLoading(true);
+          await API.seed();
+          // Short delay to allow DB update to propagate if needed, then refetch
+          setTimeout(fetchNames, 1000);
+        }}
+        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg"
+      >
+        More Suggestions
+      </button>
     </div>
   );
 
@@ -106,18 +117,14 @@ export default function Rate() {
                   {currentName.name}
                 </h2>
                 
-                {currentName.origin && (
-                  <p className="text-slate-500 font-medium">
-                    {currentName.origin}
-                  </p>
-                )}
+
                 
                 <button
                   onClick={handleGetAlternatives}
                   className="mt-6 flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-full text-sm font-semibold hover:bg-purple-100 transition-colors"
                 >
                   <Sparkles size={16} />
-                  Magic Alternatives
+                  Alternative Spellings
                 </button>
              </div>
           </div>

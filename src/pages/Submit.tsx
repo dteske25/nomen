@@ -5,7 +5,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 export default function Submit() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState('neutral');
-  const [origin, setOrigin] = useState('');
+
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,10 +14,9 @@ export default function Submit() {
 
     setStatus('submitting');
     try {
-      await API.submitName(name, gender, origin);
+      await API.submitName(name, gender);
       setStatus('success');
       setName('');
-      setOrigin('');
       setTimeout(() => setStatus('idle'), 2000);
     } catch (error) {
       console.error(error);
@@ -62,16 +61,7 @@ export default function Submit() {
           </div>
         </div>
 
-        <div>
-           <label className="block text-sm font-medium text-slate-700 mb-1">Origin (Optional)</label>
-          <input 
-            type="text" 
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none transition-all"
-            placeholder="e.g. English"
-          />
-        </div>
+
 
         <button 
           type="submit" 

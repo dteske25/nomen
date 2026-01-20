@@ -3,7 +3,8 @@ import { GoogleGenAI } from '@google/genai';
 export async function generateAlternatives(name: string, gender: string, apiKey: string): Promise<string[]> {
   const genAI = new GoogleGenAI({ apiKey });
   
-  const prompt = `List 5 creative alternative spellings or close variations for the baby name "${name}" (gender: ${gender}). 
+  const prompt = `List 5 alternative spellings or variations for the baby name "${name}" (gender: ${gender}). 
+  Prioritize generally accepted or common spellings over very obscure ones.
   Return ONLY a JSON array of strings. Do not include markdown formatting or explanation. 
   Example output: ["Name1", "Name2", "Name3", "Name4", "Name5"]`;
 

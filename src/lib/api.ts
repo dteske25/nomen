@@ -3,11 +3,17 @@ export const API = {
     const res = await fetch('/api/names');
     return res.json();
   },
-  submitName: async (name: string, gender: string, origin?: string) => {
+  submitName: async (name: string, gender: string) => {
     const res = await fetch('/api/names', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, gender, origin }),
+      body: JSON.stringify({ name, gender }),
+    });
+    return res.json();
+  },
+  seed: async () => {
+    const res = await fetch('/api/seed', {
+      method: 'POST',
     });
     return res.json();
   },
