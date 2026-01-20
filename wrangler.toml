@@ -5,6 +5,6 @@ assets = { directory = "dist", binding = "ASSETS" }
 
 [[d1_databases]]
 binding = "DB"
-database_name = "baby-names-db"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Placeholder for local dev
+database_name = "nomen-db"
+database_id = "7bef5d93-07be-4c99-b70c-b07acff8f2e5"
 migrations_dir = "drizzle"
