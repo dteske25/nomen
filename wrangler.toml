@@ -1,0 +1,10 @@
+name = "teske-baby-name-picker"
+main = "worker/index.ts"
+compatibility_date = "2024-04-01"
+assets = { directory = "dist", binding = "ASSETS" }
+
+[[d1_databases]]
+binding = "DB"
+database_name = "baby-names-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Placeholder for local dev
+migrations_dir = "drizzle"
