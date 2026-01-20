@@ -7,7 +7,7 @@ export default function Home() {
         Find the perfect name together.
       </h1>
       <p className="text-lg text-slate-600 text-center max-w-xs">
-        Swiping, matching, and AI suggestions for your baby.
+        Swiping, matching, and AI spelling suggestions for our baby.
       </p>
       
       <div className="grid grid-cols-1 gap-4 w-full px-4">
