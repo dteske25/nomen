@@ -1,4 +1,4 @@
-name = "teske-baby-name-picker"
+name = "nomen"
 main = "worker/index.ts"
 compatibility_date = "2024-04-01"
 assets = { directory = "dist", binding = "ASSETS" }
