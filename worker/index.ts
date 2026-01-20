@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
+import { eq, notInArray } from 'drizzle-orm';
 import * as schema from './schema';
 import { fetchNames, levenshtein } from './utils';
 
@@ -17,10 +18,32 @@ app.get('/api/health', (c) => {
 });
 
 app.get('/api/names', async (c) => {
-  const db = drizzle(c.env.DB, { schema });
-  // TODO: Add pagination or random generic names if empty
-  const result = await db.select().from(schema.names).all();
-  return c.json(result);
+  try {
+    const db = drizzle(c.env.DB, { schema });
+    const userName = c.req.header('X-User-Name') || 'anonymous';
+    
+    // Get all name IDs voted on by this user
+    const userVotes = await db.select({ nameId: schema.votes.nameId })
+      .from(schema.votes)
+      .where(eq(schema.votes.userName, userName))
+      .all();
+      
+    const votedNameIds = userVotes.map(v => v.nameId);
+    
+    // Fetch names not voted on
+    let query = db.select().from(schema.names);
+    
+    if (votedNameIds.length > 0) {
+      // @ts-ignore
+      query = query.where(notInArray(schema.names.id, votedNameIds));
+    }
+    
+    const result = await query.all();
+    return c.json(result);
+  } catch (e) {
+    console.error(e);
+    return c.json({ error: e.message }, 500);
+  }
 });
 
 app.post('/api/names', async (c) => {
@@ -91,9 +114,33 @@ app.post('/api/ai/alternatives', async (c) => {
     const { generateAlternatives } = await import('./ai');
     const alternatives = await generateAlternatives(name, gender, apiKey);
     return c.json({ alternatives });
+
   } catch (e) {
     console.error("AI Generation Error:", e);
     return c.json({ error: 'Failed to generate alternatives' }, 500);
+  }
+});
+
+app.post('/api/ai/similar-vibes', async (c) => {
+  const body = await c.req.json();
+  const { name, gender } = body;
+  
+  if (!name || !gender) {
+    return c.json({ error: 'Name and gender are required' }, 400);
+  }
+
+  const apiKey = c.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: 'API key not configured' }, 500);
+  }
+
+  try {
+    const { generateSimilarVibes } = await import('./ai');
+    const alternatives = await generateSimilarVibes(name, gender, apiKey);
+    return c.json({ alternatives });
+  } catch (e) {
+    console.error("AI Generation Error:", e);
+    return c.json({ error: 'Failed to generate similar vibes' }, 500);
   }
 });
 

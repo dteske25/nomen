@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API } from '../lib/api';
-import { Check, X, Star, Sparkles, Loader2 } from 'lucide-react';
+import { Check, X, Star, Sparkles, Loader2, Wand2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type NameRecord = {
@@ -13,9 +13,8 @@ type NameRecord = {
 export default function Rate() {
   const [names, setNames] = useState<NameRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [alternatives, setAlternatives] = useState<string[]>([]);
-  const [showAlternatives, setShowAlternatives] = useState(false);
-  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [modalData, setModalData] = useState<{ title: string; items: string[] } | null>(null);
+  const [loadingModal, setLoadingModal] = useState(false);
 
   const fetchNames = async () => {
     try {
@@ -52,19 +51,56 @@ export default function Rate() {
     e.stopPropagation();
     if (!currentName) return;
     
-    setLoadingAlternatives(true);
-    setShowAlternatives(true);
-    setAlternatives([]); // Clear previous
+    setLoadingModal(true);
+    setModalData({ title: 'Alternative Spellings', items: [] });
     
     try {
       const data = (await API.getAlternatives(currentName.name, currentName.gender)) as { alternatives: string[] };
       if (data.alternatives) {
-        setAlternatives(data.alternatives);
+        setModalData({ title: 'Alternative Spellings', items: data.alternatives });
       }
     } catch (error) {
       console.error("Failed to get alternatives", error);
     } finally {
-      setLoadingAlternatives(false);
+      setLoadingModal(false);
+    }
+  };
+
+  const handleGetSimilarVibes = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentName) return;
+    
+    setLoadingModal(true);
+    setModalData({ title: 'Similar Vibes', items: [] });
+    
+    try {
+      const data = (await API.getSimilarVibes(currentName.name, currentName.gender)) as { alternatives: string[] };
+      // Note: Backend returns 'alternatives' key for similar vibes too as per my implementation
+      if (data.alternatives) {
+        setModalData({ title: 'Similar Vibes', items: data.alternatives });
+      }
+    } catch (error) {
+      console.error("Failed to get similar vibes", error);
+    } finally {
+      setLoadingModal(false);
+    }
+  };
+
+  const handleAddToList = async (name: string) => {
+    if (!currentName) return;
+    // Add to DB
+    try {
+      await API.submitName(name, currentName.gender);
+      // Visual feedback - simple alert for now or just close/update UI
+      // Ideally show a toast, but I'll use a simple alert or just change the icon in the list for this iteration
+      // For now, let's just close the modal and let the user know, or maybe better, remove the item from the list to show it's "moved"
+      setModalData(prev => prev ? { ...prev, items: prev.items.filter(i => i !== name) } : null);
+      
+      // Optionally add to local stack so they can vote on it immediately or later?
+      // Let's just add it to the DB. The user can see it in their list eventually or it might come up if we reload.
+      // To provide good feedback, let's make it disappear from the list which implies "Action taken".
+    } catch (e) {
+      console.error("Failed to add name", e);
     }
   };
 
@@ -119,13 +155,22 @@ export default function Rate() {
                 
 
                 
-                <button
-                  onClick={handleGetAlternatives}
-                  className="mt-6 flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-full text-sm font-semibold hover:bg-purple-100 transition-colors"
-                >
-                  <Sparkles size={16} />
-                  Alternative Spellings
-                </button>
+                <div className="flex gap-2 mt-6">
+                  <button
+                    onClick={handleGetAlternatives}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-full text-sm font-semibold hover:bg-purple-100 transition-colors"
+                  >
+                    <Sparkles size={16} />
+                    Spellings
+                  </button>
+                  <button
+                    onClick={handleGetSimilarVibes}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-semibold hover:bg-blue-100 transition-colors"
+                  >
+                    <Wand2 size={16} />
+                    Similar Vibes
+                  </button>
+                </div>
              </div>
           </div>
           
@@ -154,15 +199,15 @@ export default function Rate() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Alternatives Modal */}
+      {/* Alternatives/Similar Modal */}
       <AnimatePresence>
-        {showAlternatives && (
+        {modalData && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-            onClick={() => setShowAlternatives(false)}
+            onClick={() => setModalData(null)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -174,33 +219,39 @@ export default function Rate() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Sparkles className="text-purple-500" size={20} />
-                  Alternatives
+                  {modalData.title}
                 </h3>
                 <button 
-                  onClick={() => setShowAlternatives(false)}
+                  onClick={() => setModalData(null)}
                   className="text-slate-400 hover:text-slate-600"
                 >
                   <X size={20} />
                 </button>
               </div>
               
-              {loadingAlternatives ? (
+              {loadingModal ? (
                  <div className="flex flex-col items-center justify-center py-8 text-slate-500">
                     <Loader2 className="animate-spin mb-2" size={32} />
                     <p>Conjuring names...</p>
                  </div>
               ) : (
                 <div className="space-y-2">
-                  {alternatives.length > 0 ? (
-                    alternatives.map((alt, i) => (
-                      <div key={i} className="p-3 bg-slate-50 rounded-xl font-medium text-slate-700 flex justify-between items-center group cursor-pointer hover:bg-purple-50 transition-colors">
-                        {alt}
-                        {/* Could add a 'copy' or 'add' button here later */}
+                  {modalData.items.length > 0 ? (
+                    modalData.items.map((alt, i) => (
+                      <div key={i} className="p-3 bg-slate-50 rounded-xl font-medium text-slate-700 flex justify-between items-center group hover:bg-purple-50 transition-colors">
+                        <span>{alt}</span>
+                        <button 
+                          onClick={() => handleAddToList(alt)}
+                          className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                          title="Add to list"
+                        >
+                          <Plus size={18} />
+                        </button>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-4 text-slate-500">
-                      No alternatives found.
+                      No suggestions found.
                     </div>
                   )}
                 </div>

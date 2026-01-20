@@ -52,3 +52,37 @@ export async function generateAlternatives(name: string, gender: string, apiKey:
     throw error;
   }
 }
+
+export async function generateSimilarVibes(name: string, gender: string, apiKey: string): Promise<string[]> {
+  const genAI = new GoogleGenAI({ apiKey });
+  
+  const prompt = `List 5 baby names that have a similar "vibe", style, or feeling to the name "${name}" (gender: ${gender}).
+  These suggestions should be distinct names, not just spellings.
+  Return ONLY a JSON array of strings. Do not include markdown formatting or explanation.
+  Example output: ["Name1", "Name2", "Name3", "Name4", "Name5"]`;
+
+  try {
+    const response = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt,
+    });
+    
+    // Safety check for response structure
+    const candidate = response.candidates?.[0];
+    const part = candidate?.content?.parts?.[0];
+    const text = part?.text || '';
+    
+    if (!text) {
+        console.error('Unexpected response structure:', JSON.stringify(response, null, 2));
+        throw new Error('No text generated');
+    }
+    
+    // Clean up if the model adds markdown code blocks
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    return JSON.parse(cleanText);
+  } catch (error) {
+    console.error('Error generating similar vibes:', error);
+    throw error;
+  }
+}
