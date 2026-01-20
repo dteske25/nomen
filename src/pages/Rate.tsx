@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API } from '../lib/api';
-import { Check, X, Star } from 'lucide-react';
+import { Check, X, Star, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type NameRecord = {
@@ -13,6 +13,9 @@ type NameRecord = {
 export default function Rate() {
   const [names, setNames] = useState<NameRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alternatives, setAlternatives] = useState<string[]>([]);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
 
   const fetchNames = async () => {
     try {
@@ -42,6 +45,26 @@ export default function Rate() {
     } catch (e) {
       console.error("Failed to submit vote", e);
       // Ideally revert optimistic update here
+    }
+  };
+
+  const handleGetAlternatives = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentName) return;
+    
+    setLoadingAlternatives(true);
+    setShowAlternatives(true);
+    setAlternatives([]); // Clear previous
+    
+    try {
+      const data = (await API.getAlternatives(currentName.name, currentName.gender)) as { alternatives: string[] };
+      if (data.alternatives) {
+        setAlternatives(data.alternatives);
+      }
+    } catch (error) {
+      console.error("Failed to get alternatives", error);
+    } finally {
+      setLoadingAlternatives(false);
     }
   };
 
@@ -88,6 +111,14 @@ export default function Rate() {
                     {currentName.origin}
                   </p>
                 )}
+                
+                <button
+                  onClick={handleGetAlternatives}
+                  className="mt-6 flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-600 rounded-full text-sm font-semibold hover:bg-purple-100 transition-colors"
+                >
+                  <Sparkles size={16} />
+                  Magic Alternatives
+                </button>
              </div>
           </div>
           
@@ -114,6 +145,62 @@ export default function Rate() {
           </div>
 
         </motion.div>
+      </AnimatePresence>
+
+      {/* Alternatives Modal */}
+      <AnimatePresence>
+        {showAlternatives && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowAlternatives(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Sparkles className="text-purple-500" size={20} />
+                  Alternatives
+                </h3>
+                <button 
+                  onClick={() => setShowAlternatives(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {loadingAlternatives ? (
+                 <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                    <Loader2 className="animate-spin mb-2" size={32} />
+                    <p>Conjuring names...</p>
+                 </div>
+              ) : (
+                <div className="space-y-2">
+                  {alternatives.length > 0 ? (
+                    alternatives.map((alt, i) => (
+                      <div key={i} className="p-3 bg-slate-50 rounded-xl font-medium text-slate-700 flex justify-between items-center group cursor-pointer hover:bg-purple-50 transition-colors">
+                        {alt}
+                        {/* Could add a 'copy' or 'add' button here later */}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-slate-500">
+                      No alternatives found.
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

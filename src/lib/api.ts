@@ -18,5 +18,13 @@ export const API = {
       body: JSON.stringify({ nameId, vote }),
     });
     return res.json();
+  },
+  getAlternatives: async (name: string, gender: string) => {
+    const res = await fetch('/api/ai/alternatives', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, gender }),
+    });
+    return res.json();
   }
 };

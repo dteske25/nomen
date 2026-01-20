@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.dev.vars
+.env
+worker-site
+debug_ai.js
+.wrangler/
+*.sqlite
