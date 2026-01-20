@@ -10,9 +10,12 @@ export const API = {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
-      body: JSON.stringify({ name, gender }),
+      body: JSON.stringify({ 
+        name, 
+        gender,
+        createdBy: localStorage.getItem('userName') || 'anonymous'
+      }),
     });
     return res.json();
   },
@@ -27,9 +30,20 @@ export const API = {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
-      body: JSON.stringify({ nameId, vote }),
+      body: JSON.stringify({ 
+        nameId, 
+        vote,
+        userName: localStorage.getItem('userName') || 'anonymous'
+      }),
+    });
+    return res.json();
+  },
+  getMatches: async () => {
+    const res = await fetch('/api/matches', {
+        headers: {
+            'X-User-Name': localStorage.getItem('userName') || 'anonymous'
+        }
     });
     return res.json();
   },
@@ -41,6 +55,12 @@ export const API = {
         'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
       body: JSON.stringify({ name, gender }),
+    });
+    return res.json();
+  },
+  getVotes: async () => {
+    const res = await fetch('/api/votes', {
+      headers: { 'X-User-Name': localStorage.getItem('userName') || 'anonymous' }
     });
     return res.json();
   },

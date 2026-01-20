@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API } from '../lib/api';
-import { Check, X, Star, Sparkles, Loader2, Wand2, Plus } from 'lucide-react';
+import { Check, X, Star, Sparkles, Loader2, Wand2, Plus, PartyPopper } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type NameRecord = {
@@ -15,6 +15,7 @@ export default function Rate() {
   const [loading, setLoading] = useState(true);
   const [modalData, setModalData] = useState<{ title: string; items: string[] } | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
+  const [matchName, setMatchName] = useState<string | null>(null);
 
   const fetchNames = async () => {
     try {
@@ -39,8 +40,12 @@ export default function Rate() {
     // Optimistic UI update
     setNames((prev) => prev.slice(1));
     
+    
     try {
-      await API.vote(current.id, vote);
+      const res = (await API.vote(current.id, vote)) as { status: string, match?: boolean };
+       if (res.match) {
+        setMatchName(current.name);
+      }
     } catch (e) {
       console.error("Failed to submit vote", e);
       // Ideally revert optimistic update here
@@ -257,6 +262,84 @@ export default function Rate() {
                 </div>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Match Overlay */}
+      <AnimatePresence>
+        {matchName && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 text-white p-6 text-center"
+            onClick={() => setMatchName(null)}
+          >
+            <motion.div
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring" }}
+            >
+              <h1 className="text-6xl font-black bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 bg-clip-text text-transparent mb-4 drop-shadow-2xl">
+                It's a Match!
+              </h1>
+            </motion.div>
+            
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4, type: "spring", bounce: 0.6 }}
+              className="mb-8"
+            >
+              <div className="bg-white text-slate-900 rounded-3xl px-8 py-4 text-4xl font-black shadow-[0_0_50px_rgba(236,72,153,0.5)] transform -rotate-2">
+                {matchName}
+              </div>
+            </motion.div>
+
+            <motion.div
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ delay: 0.8 }}
+               className="flex gap-4"
+            >
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMatchName(null);
+                }}
+                className="bg-white text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-slate-100 transition-colors"
+              >
+                Keep Swiping
+              </button>
+            </motion.div>
+            
+            {/* Confetti-ish elements */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+               {[...Array(20)].map((_, i) => (
+                 <motion.div
+                   key={i}
+                   className="absolute text-yellow-400"
+                   initial={{ 
+                     x: Math.random() * window.innerWidth, 
+                     y: -20,
+                     rotate: 0 
+                   }}
+                   animate={{ 
+                     y: window.innerHeight + 20,
+                     rotate: 360
+                   }}
+                   transition={{ 
+                     duration: 2 + Math.random() * 3,
+                     repeat: Infinity,
+                     delay: Math.random() * 2
+                   }}
+                 >
+                   <PartyPopper size={24 + Math.random() * 24} />
+                 </motion.div>
+               ))}
+            </div>
+
           </motion.div>
         )}
       </AnimatePresence>

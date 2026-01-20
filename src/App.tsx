@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Home as HomeIcon, PlusCircle, Heart } from 'lucide-react';
+import Matches from './pages/Matches';
+import History from './pages/History';
 import HomePage from './pages/Home';
 import Submit from './pages/Submit';
 import Rate from './pages/Rate';
 import NamePrompt from './components/NamePrompt';
+import { Home as HomeIcon, PlusCircle, Heart, Sparkles, History as HistoryIcon } from 'lucide-react';
 
 function Layout() {
   const [showNamePrompt, setShowNamePrompt] = useState(false);
@@ -53,6 +55,12 @@ function Layout() {
           <Link to="/rate" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full">
             <Heart size={24} />
           </Link>
+          <Link to="/matches" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full relative">
+            <Sparkles size={24} />
+          </Link>
+          <Link to="/history" className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full">
+            <HistoryIcon size={24} />
+          </Link>
         </nav>
       </header>
       <main className="max-w-md mx-auto p-4">
@@ -60,6 +68,8 @@ function Layout() {
           <Route path="/" element={<HomePage />} />
           <Route path="/submit" element={<Submit />} />
           <Route path="/rate" element={<Rate />} />
+          <Route path="/matches" element={<Matches />} />
+          <Route path="/history" element={<History />} />
         </Routes>
       </main>
     </div>
