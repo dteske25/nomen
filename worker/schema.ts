@@ -14,6 +14,6 @@ export const votes = sqliteTable('votes', {
   id: text('id').primaryKey(),
   userName: text('user_name').notNull(),
   nameId: text('name_id').notNull().references(() => names.id),
-  vote: text('vote').notNull(), // 'like', 'dislike', 'superlike'
+  vote: text('vote').notNull(), // 'like', 'dislike', 'maybe'
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });

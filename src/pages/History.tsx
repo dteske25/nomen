@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { API } from '../lib/api';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, X, Star } from 'lucide-react';
+import { ArrowLeft, Check, X, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type VoteRecord = {
   nameId: string;
-  vote: 'like' | 'dislike' | 'superlike';
+  vote: 'like' | 'dislike' | 'maybe';
   name: string;
   gender: string;
   createdAt: string;
@@ -33,9 +33,9 @@ export default function History() {
     }
   };
 
-  const handleUpdateVote = async (nameId: string, newVote: 'like' | 'dislike' | 'superlike') => {
+  const handleUpdateVote = async (nameId: string, newVote: 'like' | 'dislike' | 'maybe') => {
     // Optimistic update
-    setVotes(prev => prev.map(v => 
+    setVotes(prev => prev.map(v =>
       v.nameId === nameId ? { ...v, vote: newVote } : v
     ));
 
@@ -68,7 +68,7 @@ export default function History() {
         ) : (
           <div className="space-y-4">
             {votes.map((vote, i) => (
-              <motion.div 
+              <motion.div
                 key={vote.nameId}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -78,11 +78,10 @@ export default function History() {
                 <div>
                   <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                     {vote.name}
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      vote.gender === 'girl' ? 'bg-pink-100 text-pink-600' :
-                      vote.gender === 'boy' ? 'bg-blue-100 text-blue-600' :
-                      'bg-yellow-100 text-yellow-600'
-                    }`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider ${vote.gender === 'girl' ? 'bg-pink-100 text-pink-600' :
+                        vote.gender === 'boy' ? 'bg-blue-100 text-blue-600' :
+                          'bg-yellow-100 text-yellow-600'
+                      }`}>
                       {vote.gender}
                     </span>
                   </h3>
@@ -92,36 +91,33 @@ export default function History() {
                 </div>
 
                 <div className="flex gap-2">
-                   {/* Dislike Loop */}
+                  {/* Dislike Loop */}
                   <button
                     onClick={() => handleUpdateVote(vote.nameId, 'dislike')}
-                    className={`p-2 rounded-full transition-colors ${
-                      vote.vote === 'dislike' 
-                        ? 'bg-red-500 text-white shadow-md' 
+                    className={`p-2 rounded-full transition-colors ${vote.vote === 'dislike'
+                        ? 'bg-red-500 text-white shadow-md'
                         : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <X size={16} strokeWidth={3} />
                   </button>
-                    {/* Superlike Loop */}
+                  {/* Maybe Loop */}
                   <button
-                    onClick={() => handleUpdateVote(vote.nameId, 'superlike')}
-                    className={`p-2 rounded-full transition-colors ${
-                      vote.vote === 'superlike' 
-                        ? 'bg-blue-500 text-white shadow-md' 
+                    onClick={() => handleUpdateVote(vote.nameId, 'maybe')}
+                    className={`p-2 rounded-full transition-colors ${vote.vote === 'maybe'
+                        ? 'bg-yellow-500 text-white shadow-md'
                         : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
-                    <Star size={16} fill="currentColor" />
+                    <Clock size={16} strokeWidth={3} />
                   </button>
-                    {/* Like Loop */}
+                  {/* Like Loop */}
                   <button
                     onClick={() => handleUpdateVote(vote.nameId, 'like')}
-                    className={`p-2 rounded-full transition-colors ${
-                      vote.vote === 'like' 
-                        ? 'bg-green-500 text-white shadow-md' 
+                    className={`p-2 rounded-full transition-colors ${vote.vote === 'like'
+                        ? 'bg-green-500 text-white shadow-md'
                         : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <Check size={16} strokeWidth={3} />
                   </button>

@@ -8,11 +8,11 @@ export const API = {
   submitName: async (name: string, gender: string) => {
     const res = await fetch('/api/names', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        name, 
+      body: JSON.stringify({
+        name,
         gender,
         createdBy: localStorage.getItem('userName') || 'anonymous'
       }),
@@ -25,14 +25,14 @@ export const API = {
     });
     return res.json();
   },
-  vote: async (nameId: string, vote: 'like' | 'dislike' | 'superlike') => {
+  vote: async (nameId: string, vote: 'like' | 'dislike' | 'maybe') => {
     const res = await fetch('/api/vote', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        nameId, 
+      body: JSON.stringify({
+        nameId,
         vote,
         userName: localStorage.getItem('userName') || 'anonymous'
       }),
@@ -41,16 +41,16 @@ export const API = {
   },
   getMatches: async () => {
     const res = await fetch('/api/matches', {
-        headers: {
-            'X-User-Name': localStorage.getItem('userName') || 'anonymous'
-        }
+      headers: {
+        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
+      }
     });
     return res.json();
   },
   getAlternatives: async (name: string, gender: string) => {
     const res = await fetch('/api/ai/alternatives', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
@@ -67,7 +67,7 @@ export const API = {
   getSimilarVibes: async (name: string, gender: string) => {
     const res = await fetch('/api/ai/similar-vibes', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
