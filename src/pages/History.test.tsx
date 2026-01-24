@@ -84,7 +84,8 @@ describe('History', () => {
             expect(screen.getByText('Alice')).toBeInTheDocument();
         });
 
-        const dislikeButton = screen.getAllByRole('button')[0]; // Assuming order or specific selector
+        // We can verify the button exists or just look for the icon
+
         // A better selector would be based on class or icon, but let's try to query by parent row if possible or just assuming index
         // The buttons have icons. 
         // Dislike button has X icon.

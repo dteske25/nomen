@@ -64,7 +64,6 @@ describe('Rate', () => {
             expect(screen.getByText('Alice')).toBeInTheDocument();
         });
 
-        const likeButton = screen.getAllByRole('button')[3]; // Assuming order based on render
         // 0: Spellings, 1: Similar Vibes, 2: Dislike, 3: Maybe, 4: Like
         // Let's use more specific queries if possible or comments in code suggest order.
         // Code order: spellings, similar vibes, dislike, maybe, like.

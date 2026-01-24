@@ -33,7 +33,6 @@ describe('Submit', () => {
         const input = screen.getByPlaceholderText(/e.g. Avery/i);
         fireEvent.change(input, { target: { value: 'Zoe' } });
 
-        const buttons = screen.getAllByRole('button');
         // Gender buttons (boy, girl, neutral) + Submit button
         // Let's assume neutral is default or select one
         // Code: default gender is 'neutral'
