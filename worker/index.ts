@@ -81,8 +81,48 @@ app.post('/api/names', async (c) => {
     return c.json({ error: 'Name and gender are required' }, 400);
   }
 
-  const id = crypto.randomUUID();
   try {
+    // Check for existing name (case-insensitive)
+    // Check for existing name (case-insensitive)
+    const allNames = await db.select()
+      .from(schema.names)
+      .where(eq(schema.names.name, name)) // SQLite is case-insensitive by default for text usually, but to be safe we might want lower(), but let's stick to exact match or rely on user input matching. Actually, the seed check used lower(), but the schema is text. Let's do a rigorous check.
+      // Drizzle doesn't have a simple lower() helper in the query builder easily without sql operator.
+      // But looking at seed logic: "currentNames.some(n => n.name.toLowerCase() === candidate.name.toLowerCase())"
+      // Detailed check:
+      // Let's first just try to find it.
+      .all();
+
+    const existingName = allNames.find(n => n.name.toLowerCase() === name.toLowerCase());
+
+    if (existingName) {
+      // Name exists! Treat this as a vote for the existing name.
+      // Check if user already voted?
+      const userName = createdBy || 'anonymous';
+
+      const existingVote = await db.select()
+        .from(schema.votes)
+        .where(and(
+          eq(schema.votes.userName, userName),
+          eq(schema.votes.nameId, existingName.id)
+        ))
+        .get();
+
+      if (!existingVote) {
+        await db.insert(schema.votes).values({
+          id: crypto.randomUUID(),
+          userName: userName,
+          nameId: existingName.id,
+          vote: 'like',
+          createdAt: new Date(),
+        });
+      }
+
+      // Return success as if created (or special status)
+      return c.json({ id: existingName.id, name: existingName.name, status: 'merged' }, 200);
+    }
+
+    const id = crypto.randomUUID();
     await db.insert(schema.names).values({
       id,
       name,
@@ -104,6 +144,7 @@ app.post('/api/names', async (c) => {
 
     return c.json({ id, name, status: 'created' }, 201);
   } catch (e) {
+    console.error(e);
     return c.json({ error: 'Failed to create name' }, 500);
   }
 });
