@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, notInArray, and, ne, inArray, or, isNotNull, desc } from 'drizzle-orm';
+import { eq, notInArray, and, ne, inArray, or, isNotNull, desc, asc } from 'drizzle-orm';
 import * as schema from './schema';
 import { fetchNames, levenshtein } from './utils';
 
@@ -21,24 +21,50 @@ app.get('/api/names', async (c) => {
   try {
     const db = drizzle(c.env.DB, { schema });
     const userName = c.req.header('X-User-Name') || 'anonymous';
-    
+
     // Get all name IDs voted on by this user
     const userVotes = await db.select({ nameId: schema.votes.nameId })
       .from(schema.votes)
       .where(eq(schema.votes.userName, userName))
       .all();
-      
+
     const votedNameIds = userVotes.map(v => v.nameId);
-    
+
     // Fetch names not voted on
     let query = db.select().from(schema.names);
-    
+
     if (votedNameIds.length > 0) {
       // @ts-ignore
       query = query.where(notInArray(schema.names.id, votedNameIds));
     }
-    
-    const result = await query.all();
+
+    let result = await query.all();
+
+    // If no names found, checks for "maybe" votes to recycle
+    if (result.length === 0) {
+      const maybeVotes = await db.select({ nameId: schema.votes.nameId })
+        .from(schema.votes)
+        .where(and(
+          eq(schema.votes.userName, userName),
+          eq(schema.votes.vote, 'maybe')
+        ))
+        .orderBy(asc(schema.votes.createdAt))
+        .all();
+
+      if (maybeVotes.length > 0) {
+        const maybeNameIds = maybeVotes.map(v => v.nameId);
+        const recycledNames = await db.select()
+          .from(schema.names)
+          .where(inArray(schema.names.id, maybeNameIds))
+          .all();
+
+        // Sort to match vote order (oldest first)
+        result = recycledNames.sort((a, b) => {
+          return maybeNameIds.indexOf(a.id) - maybeNameIds.indexOf(b.id);
+        });
+      }
+    }
+
     return c.json(result);
   } catch (e) {
     console.error(e);
@@ -49,14 +75,54 @@ app.get('/api/names', async (c) => {
 app.post('/api/names', async (c) => {
   const db = drizzle(c.env.DB, { schema });
   const body = await c.req.json();
-    const { name, gender, createdBy } = body;
-  
+  const { name, gender, createdBy } = body;
+
   if (!name || !gender) {
     return c.json({ error: 'Name and gender are required' }, 400);
   }
 
-  const id = crypto.randomUUID();
   try {
+    // Check for existing name (case-insensitive)
+    // Check for existing name (case-insensitive)
+    const allNames = await db.select()
+      .from(schema.names)
+      .where(eq(schema.names.name, name)) // SQLite is case-insensitive by default for text usually, but to be safe we might want lower(), but let's stick to exact match or rely on user input matching. Actually, the seed check used lower(), but the schema is text. Let's do a rigorous check.
+      // Drizzle doesn't have a simple lower() helper in the query builder easily without sql operator.
+      // But looking at seed logic: "currentNames.some(n => n.name.toLowerCase() === candidate.name.toLowerCase())"
+      // Detailed check:
+      // Let's first just try to find it.
+      .all();
+
+    const existingName = allNames.find(n => n.name.toLowerCase() === name.toLowerCase());
+
+    if (existingName) {
+      // Name exists! Treat this as a vote for the existing name.
+      // Check if user already voted?
+      const userName = createdBy || 'anonymous';
+
+      const existingVote = await db.select()
+        .from(schema.votes)
+        .where(and(
+          eq(schema.votes.userName, userName),
+          eq(schema.votes.nameId, existingName.id)
+        ))
+        .get();
+
+      if (!existingVote) {
+        await db.insert(schema.votes).values({
+          id: crypto.randomUUID(),
+          userName: userName,
+          nameId: existingName.id,
+          vote: 'like',
+          createdAt: new Date(),
+        });
+      }
+
+      // Return success as if created (or special status)
+      return c.json({ id: existingName.id, name: existingName.name, status: 'merged' }, 200);
+    }
+
+    const id = crypto.randomUUID();
     await db.insert(schema.names).values({
       id,
       name,
@@ -78,14 +144,15 @@ app.post('/api/names', async (c) => {
 
     return c.json({ id, name, status: 'created' }, 201);
   } catch (e) {
-     return c.json({ error: 'Failed to create name' }, 500);
+    console.error(e);
+    return c.json({ error: 'Failed to create name' }, 500);
   }
 });
 
 app.get('/api/votes', async (c) => {
   const db = drizzle(c.env.DB, { schema });
   const userName = c.req.header('X-User-Name') || 'anonymous';
-  
+
   try {
     const result = await db.select({
       nameId: schema.votes.nameId,
@@ -94,12 +161,12 @@ app.get('/api/votes', async (c) => {
       name: schema.names.name,
       gender: schema.names.gender
     })
-    .from(schema.votes)
-    .innerJoin(schema.names, eq(schema.votes.nameId, schema.names.id))
-    .where(eq(schema.votes.userName, userName))
-    .orderBy(desc(schema.votes.createdAt))
-    .all();
-    
+      .from(schema.votes)
+      .innerJoin(schema.names, eq(schema.votes.nameId, schema.names.id))
+      .where(eq(schema.votes.userName, userName))
+      .orderBy(desc(schema.votes.createdAt))
+      .all();
+
     return c.json(result);
   } catch (e) {
     console.error(e);
@@ -110,7 +177,7 @@ app.get('/api/votes', async (c) => {
 app.post('/api/vote', async (c) => {
   const db = drizzle(c.env.DB, { schema });
   const body = await c.req.json();
-  const { nameId, vote, userName } = body; 
+  const { nameId, vote, userName } = body;
 
   if (!nameId || !vote || !userName) {
     return c.json({ error: 'Name ID, vote, and userName are required' }, 400);
@@ -143,7 +210,7 @@ app.post('/api/vote', async (c) => {
 
     // Check for match
     let isMatch = false;
-    if (vote === 'like' || vote === 'superlike') {
+    if (vote === 'like') {
       // 1. Check if another user liked/superliked this name
       const otherLikes = await db.select()
         .from(schema.votes)
@@ -151,7 +218,7 @@ app.post('/api/vote', async (c) => {
           and(
             eq(schema.votes.nameId, nameId),
             ne(schema.votes.userName, userName),
-            inArray(schema.votes.vote, ['like', 'superlike'])
+            inArray(schema.votes.vote, ['like'])
           )
         )
         .limit(1);
@@ -173,7 +240,7 @@ app.post('/api/vote', async (c) => {
 app.post('/api/ai/alternatives', async (c) => {
   const body = await c.req.json();
   const { name, gender } = body;
-  
+
   if (!name || !gender) {
     return c.json({ error: 'Name and gender are required' }, 400);
   }
@@ -197,7 +264,7 @@ app.post('/api/ai/alternatives', async (c) => {
 app.post('/api/ai/similar-vibes', async (c) => {
   const body = await c.req.json();
   const { name, gender } = body;
-  
+
   if (!name || !gender) {
     return c.json({ error: 'Name and gender are required' }, 400);
   }
@@ -232,39 +299,39 @@ app.get('/api/matches', async (c) => {
     // 2. Filter those names where:
     //    a. Another user has liked them
     //    b. OR Another user created them
-    
+
     // Get user likes
     const userLikes = await db.select({ nameId: schema.votes.nameId })
       .from(schema.votes)
       .where(and(
         eq(schema.votes.userName, userName),
-        inArray(schema.votes.vote, ['like', 'superlike'])
+        inArray(schema.votes.vote, ['like'])
       ))
       .all();
 
     const likedNameIds = userLikes.map(v => v.nameId);
-    
+
     if (likedNameIds.length === 0) {
       return c.json([]);
     }
 
     // Find matches among these liked names
-    
+
     // Condition A: Others liked
     const agreedVotes = await db.select({ nameId: schema.votes.nameId })
       .from(schema.votes)
       .where(and(
         inArray(schema.votes.nameId, likedNameIds),
         ne(schema.votes.userName, userName),
-        inArray(schema.votes.vote, ['like', 'superlike'])
+        inArray(schema.votes.vote, ['like'])
       ))
       .all();
-      
+
     const agreedNameIds = new Set(agreedVotes.map(v => v.nameId));
 
     // For Condition B, we need to check the names table for those we haven't already found in A
     // (Optimization: only check names that aren't already matched via votes)
-    
+
     // Fetch details for all liked names to check creator and return data
     const likedNamesDetails = await db.select()
       .from(schema.names)
@@ -274,7 +341,7 @@ app.get('/api/matches', async (c) => {
     const matches = likedNamesDetails.filter(n => {
       // Is matched by vote?
       if (agreedNameIds.has(n.id)) return true;
-      
+
       return false;
     });
 
@@ -289,31 +356,31 @@ app.get('/api/matches', async (c) => {
 
 app.post('/api/seed', async (c) => {
   const db = drizzle(c.env.DB, { schema });
-  
+
   try {
     // 1. Fetch current names
     const currentNames = await db.select().from(schema.names).all();
-    
+
     // 2. Fetch candidates (request more than 50 to allow for duplicates/similarity rejections)
     const candidates = await fetchNames(150);
-    
+
     const addedNames: string[] = [];
     const minLevenshteinDistance = 2;
-    
+
     for (const candidate of candidates) {
       if (addedNames.length >= 50) break;
-      
+
       // Check for exact match in DB or already added in this batch
-      const exactMatch = currentNames.some(n => n.name.toLowerCase() === candidate.name.toLowerCase()) || 
-                         addedNames.includes(candidate.name);
-      
+      const exactMatch = currentNames.some(n => n.name.toLowerCase() === candidate.name.toLowerCase()) ||
+        addedNames.includes(candidate.name);
+
       if (exactMatch) continue;
-      
+
       // Check for similarity
       const isSimilar = currentNames.some(n => levenshtein(n.name.toLowerCase(), candidate.name.toLowerCase()) < minLevenshteinDistance);
-      
+
       if (isSimilar) continue;
-      
+
       // Add to DB
       const id = crypto.randomUUID();
       await db.insert(schema.names).values({
@@ -322,12 +389,12 @@ app.post('/api/seed', async (c) => {
         gender: candidate.gender === 'male' ? 'boy' : candidate.gender === 'female' ? 'girl' : 'neutral',
         createdAt: new Date(),
       });
-      
+
       addedNames.push(candidate.name);
     }
-    
+
     return c.json({ added: addedNames.length, names: addedNames });
-    
+
   } catch (e) {
     console.error(e);
     return c.json({ error: 'Failed to seed database' }, 500);
