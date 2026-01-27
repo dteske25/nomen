@@ -8,33 +8,43 @@ import Rate from './pages/Rate';
 import NamePrompt from './components/NamePrompt';
 import { Home as HomeIcon, PlusCircle, Heart, Sparkles, History as HistoryIcon } from 'lucide-react';
 
+import { UserProvider, useUser } from './context/UserContext';
+
 function Layout() {
+  const { userName, setUserName } = useUser();
   const [showNamePrompt, setShowNamePrompt] = useState(false);
-  
-  // Check if name exists on mount
+
+  // Check if name is valid
   useEffect(() => {
-    const savedName = localStorage.getItem('userName');
-    if (!savedName) {
-      // Add one-time listeners for interaction
-      const handleInteraction = () => {
-        const currentName = localStorage.getItem('userName');
-        if (!currentName) {
+    const isValid = userName === 'Daric' || userName === 'Megan';
+
+    if (!isValid) {
+      if (userName) {
+        // If they have a name but it's invalid (not Daric/Megan), clear it immediately and show prompt
+        setUserName('');
+        setShowNamePrompt(true);
+      } else {
+        // If no name, wait for interacton
+        const handleInteraction = () => {
+          // Check again, in case it was set elsewhere
+          if (!userName) {
             setShowNamePrompt(true);
-        }
-      };
+          }
+        };
 
-      window.addEventListener('click', handleInteraction);
-      window.addEventListener('keydown', handleInteraction);
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('keydown', handleInteraction);
 
-      return () => {
-        window.removeEventListener('click', handleInteraction);
-        window.removeEventListener('keydown', handleInteraction);
-      };
+        return () => {
+          window.removeEventListener('click', handleInteraction);
+          window.removeEventListener('keydown', handleInteraction);
+        };
+      }
     }
-  }, []);
+  }, [userName, setUserName]);
 
   const handleSaveName = (name: string) => {
-    localStorage.setItem('userName', name);
+    setUserName(name);
     setShowNamePrompt(false);
   };
 
@@ -78,8 +88,10 @@ function Layout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
+    </UserProvider>
   );
 }

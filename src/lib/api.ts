@@ -1,8 +1,12 @@
+
+let currentUserName = localStorage.getItem('userName') || '';
+
 export const API = {
+  setApiUser: (name: string) => {
+    currentUserName = name;
+  },
   getNames: async () => {
-    const res = await fetch('/api/names', {
-      headers: { 'X-User-Name': localStorage.getItem('userName') || 'anonymous' }
-    });
+    const res = await fetch(`/api/names?userName=${encodeURIComponent(currentUserName)}`);
     return res.json();
   },
   submitName: async (name: string, gender: string) => {
@@ -14,7 +18,7 @@ export const API = {
       body: JSON.stringify({
         name,
         gender,
-        createdBy: localStorage.getItem('userName') || 'anonymous'
+        userName: currentUserName
       }),
     });
     return res.json();
@@ -34,17 +38,13 @@ export const API = {
       body: JSON.stringify({
         nameId,
         vote,
-        userName: localStorage.getItem('userName') || 'anonymous'
+        userName: currentUserName
       }),
     });
     return res.json();
   },
   getMatches: async () => {
-    const res = await fetch('/api/matches', {
-      headers: {
-        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
-      }
-    });
+    const res = await fetch(`/api/matches?userName=${encodeURIComponent(currentUserName)}`);
     return res.json();
   },
   getAlternatives: async (name: string, gender: string) => {
@@ -52,16 +52,13 @@ export const API = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
-      body: JSON.stringify({ name, gender }),
+      body: JSON.stringify({ name, gender, userName: currentUserName }),
     });
     return res.json();
   },
   getVotes: async () => {
-    const res = await fetch('/api/votes', {
-      headers: { 'X-User-Name': localStorage.getItem('userName') || 'anonymous' }
-    });
+    const res = await fetch(`/api/votes?userName=${encodeURIComponent(currentUserName)}`);
     return res.json();
   },
   getSimilarVibes: async (name: string, gender: string) => {
@@ -69,10 +66,10 @@ export const API = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Name': localStorage.getItem('userName') || 'anonymous'
       },
-      body: JSON.stringify({ name, gender }),
+      body: JSON.stringify({ name, gender, userName: currentUserName }),
     });
     return res.json();
   }
 };
+

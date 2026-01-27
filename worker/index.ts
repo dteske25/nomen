@@ -17,16 +17,19 @@ app.get('/api/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
+
+// GET /api/names
 app.get('/api/names', async (c) => {
   try {
     const db = drizzle(c.env.DB, { schema });
-    const userName = c.req.header('X-User-Name') || 'anonymous';
+    const userName = c.req.query('userName') || 'anonymous';
 
     // Get all name IDs voted on by this user
     const userVotes = await db.select({ nameId: schema.votes.nameId })
       .from(schema.votes)
       .where(eq(schema.votes.userName, userName))
       .all();
+
 
     const votedNameIds = userVotes.map(v => v.nameId);
 
@@ -75,7 +78,8 @@ app.get('/api/names', async (c) => {
 app.post('/api/names', async (c) => {
   const db = drizzle(c.env.DB, { schema });
   const body = await c.req.json();
-  const { name, gender, createdBy } = body;
+  const { name, gender, userName } = body;
+  const createdBy = userName || 'anonymous';
 
   if (!name || !gender) {
     return c.json({ error: 'Name and gender are required' }, 400);
@@ -151,7 +155,7 @@ app.post('/api/names', async (c) => {
 
 app.get('/api/votes', async (c) => {
   const db = drizzle(c.env.DB, { schema });
-  const userName = c.req.header('X-User-Name') || 'anonymous';
+  const userName = c.req.query('userName') || 'anonymous';
 
   try {
     const result = await db.select({
@@ -287,7 +291,7 @@ app.post('/api/ai/similar-vibes', async (c) => {
 
 app.get('/api/matches', async (c) => {
   const db = drizzle(c.env.DB, { schema });
-  const userName = c.req.header('X-User-Name');
+  const userName = c.req.query('userName');
 
   if (!userName) {
     return c.json({ error: 'User name header required' }, 400);
