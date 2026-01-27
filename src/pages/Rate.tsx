@@ -16,10 +16,18 @@ export default function Rate() {
   const [modalData, setModalData] = useState<{ title: string; items: string[] } | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
   const [matchName, setMatchName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNames = async () => {
     try {
       const data = (await API.getNames()) as NameRecord[];
+
+      if (!Array.isArray(data)) {
+        console.error("Unexpected API response:", data);
+        setError(JSON.stringify(data));
+        setNames([]);
+        return;
+      }
 
       // Fisher-Yates shuffle
       for (let i = data.length - 1; i > 0; i--) {
@@ -28,8 +36,9 @@ export default function Rate() {
       }
 
       setNames(data);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -116,6 +125,22 @@ export default function Rate() {
   };
 
   if (loading) return <div className="text-center p-10">Loading names...</div>;
+
+  if (error) return (
+    <div className="text-center p-10 space-y-4">
+      <h3 className="text-xl font-bold text-red-500">Error Loading Names</h3>
+      <pre className="bg-red-50 p-4 rounded text-left overflow-auto text-xs text-red-800">
+        {error}
+      </pre>
+      <button
+        onClick={() => window.location.reload()}
+        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+      >
+        Retry
+      </button>
+    </div>
+  );
+
   if (names.length === 0) return (
     <div className="text-center p-10 space-y-4">
       <h3 className="text-xl font-bold">All caught up!</h3>
@@ -153,8 +178,8 @@ export default function Rate() {
 
             <div className="relative z-10">
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase mb-4 tracking-wider ${currentName.gender === 'girl' ? 'bg-pink-100 text-pink-600' :
-                  currentName.gender === 'boy' ? 'bg-blue-100 text-blue-600' :
-                    'bg-yellow-100 text-yellow-600'
+                currentName.gender === 'boy' ? 'bg-blue-100 text-blue-600' :
+                  'bg-yellow-100 text-yellow-600'
                 }`}>
                 {currentName.gender}
               </span>

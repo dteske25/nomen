@@ -122,4 +122,17 @@ describe('Rate', () => {
             expect(screen.getByText(/it's a match/i)).toBeInTheDocument();
         });
     });
+    it('handles API error gracefully and displays it', async () => {
+        (API.getNames as any).mockResolvedValue({ error: 'Some error' });
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
+        render(<Rate />);
+        await waitFor(() => {
+            expect(screen.getByText(/error loading names/i)).toBeInTheDocument();
+            expect(screen.getByText(/{"error":"Some error"}/)).toBeInTheDocument();
+        });
+
+        expect(consoleSpy).toHaveBeenCalledWith("Unexpected API response:", { error: 'Some error' });
+        consoleSpy.mockRestore();
+    });
 });

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, notInArray, and, ne, inArray, or, isNotNull, desc, asc } from 'drizzle-orm';
+import { eq, notInArray, and, ne, inArray, or, isNotNull, isNull, desc, asc } from 'drizzle-orm';
 import * as schema from './schema';
 import { fetchNames, levenshtein } from './utils';
 
@@ -24,24 +24,26 @@ app.get('/api/names', async (c) => {
     const db = drizzle(c.env.DB, { schema });
     const userName = c.req.query('userName') || 'anonymous';
 
-    // Get all name IDs voted on by this user
-    const userVotes = await db.select({ nameId: schema.votes.nameId })
-      .from(schema.votes)
-      .where(eq(schema.votes.userName, userName))
+    // Optimized: Use LEFT JOIN to find names without a vote from this user
+    // This avoids the "too many variables" error with notInArray on large lists
+    let result = await db.select({
+      id: schema.names.id,
+      name: schema.names.name,
+      gender: schema.names.gender,
+      phoneticHash: schema.names.phoneticHash,
+      createdAt: schema.names.createdAt,
+      createdBy: schema.names.createdBy,
+    })
+      .from(schema.names)
+      .leftJoin(
+        schema.votes,
+        and(
+          eq(schema.names.id, schema.votes.nameId),
+          eq(schema.votes.userName, userName)
+        )
+      )
+      .where(isNull(schema.votes.id))
       .all();
-
-
-    const votedNameIds = userVotes.map(v => v.nameId);
-
-    // Fetch names not voted on
-    let query = db.select().from(schema.names);
-
-    if (votedNameIds.length > 0) {
-      // @ts-ignore
-      query = query.where(notInArray(schema.names.id, votedNameIds));
-    }
-
-    let result = await query.all();
 
     // If no names found, checks for "maybe" votes to recycle
     if (result.length === 0) {
